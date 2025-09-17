@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #1a1a1a, #2b2b2b);
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        color: #fff;
+    }
+
+    .login-box {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 40px 30px;
+        border-radius: 12px;
+        width: 350px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        font-size: 12px;
+        color: #aaa;
+    }
+
+    .form-group input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid #555;
+        padding: 8px 0;
+        color: #fff;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s ease;
+    }
+
+    .form-group input:focus {
+        border-color: #00cfff;
+    }
+
+    .options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        margin-bottom: 20px;
+    }
+
+    .options label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: #ccc;
+    }
+
+    .options a {
+        text-decoration: none;
+        color: #00cfff;
+    }
+
+    .btn {
+        width: 100%;
+        border: none;
+        padding: 12px;
+        border-radius: 30px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        margin-bottom: 10px;
+        transition: background 0.3s ease, opacity 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #00c6ff, #0072ff);
+        color: #fff;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.9;
+    }
+
+    .btn-google {
+        background: linear-gradient(90deg, #4285F4, #34A853);
+        color: #fff;
+    }
+
+    .btn-google:hover {
+        opacity: 0.9;
+    }
+
+    .divider {
+        text-align: center;
+        margin: 10px 0;
+        font-size: 12px;
+        color: #aaa;
+    }
+
+    .signup-link {
+        text-align: center;
+        font-size: 14px;
+        margin-top: 15px;
+        color: #ccc;
+    }
+
+    .signup-link a {
+        color: #00cfff;
+        text-decoration: none;
+        font-weight: 600;
+        margin-left: 4px;
+    }
+
+    .signup-link a:hover {
+        text-decoration: underline;
+    }
+    
+    .login-error {
+        background: rgba(255, 0, 0, 0.1);
+        border: 1px solid #ff4d4d;
+        color: #ff6b6b;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        text-align: center;
+        margin-bottom: 15px;
+    }
+    
+</style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>Sign In</h1>
+        <form th:action="@{/login}" method="post">
+        
+            <div class="form-group">
+                <label for="email">Your email</label>
+                <input type="email" id="email" name="email"  required/>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Your password</label>
+                <input type="password" id="password" name="password" srequired/>
+            </div>
+
+            <div class="options">
+                <label>
+                    <input type="checkbox" name="rememberMe"> Keep me logged in
+                </label>
+                <a th:href="@{/forgotPassword}">Forgot password?</a>
+            </div>
+            
+            <div th:if="${param.error}" class="login-error">
+            	Email and Password do not match
+        	</div>
+
+            <button type="submit" class="btn btn-primary">SIGN IN</button>
+            <div class="divider">or</div>
+            <button type="button" class="btn btn-google">SIGN IN WITH GOOGLE</button>
+        </form>
+        
+        
+
+        <div class="signup-link">
+            Don't have an account?
+            <a th:href="@{/signup}">Sign Up</a>
+        </div>
+    </div>
+</body>
+</html>
