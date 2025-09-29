@@ -5,30 +5,37 @@
 <title>Login</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <style>
-    body {
+    html, body {
         margin: 0;
         padding: 0;
         background: linear-gradient(135deg, #1a1a1a, #2b2b2b);
         font-family: 'Poppins', sans-serif;
+        color: #fff;
+        min-height: 100%;
+    }
+
+    body {
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
-        color: #fff;
+        padding: 40px 0;
     }
 
     .login-box {
         background: rgba(255, 255, 255, 0.05);
-        padding: 40px 30px;
+        padding: 30px 40px;
         border-radius: 12px;
-        width: 350px;
+        width: 450px;
+        max-width: 90%;
         box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        margin-top: -25px;
+        margin-bottom: -25px;
     }
 
     h1 {
         text-align: center;
-        margin-bottom: 30px;
-        font-size: 24px;
+        margin-bottom: 35px;
+        font-size: 28px;
         font-weight: 600;
     }
 
@@ -46,7 +53,7 @@
         background: transparent;
         border: none;
         border-bottom: 1px solid #555;
-        padding: 8px 0;
+        padding: 10px 0;
         color: #fff;
         font-size: 14px;
         outline: none;
@@ -62,7 +69,8 @@
         justify-content: space-between;
         align-items: center;
         font-size: 12px;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
+        margin-top: 10px;
     }
 
     .options label {
@@ -77,15 +85,19 @@
         color: #00cfff;
     }
 
+    .options a:hover {
+        text-decoration: underline;
+    }
+
     .btn {
         width: 100%;
         border: none;
-        padding: 12px;
+        padding: 15px;
         border-radius: 30px;
         font-weight: 600;
         cursor: pointer;
         font-size: 14px;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
         transition: background 0.3s ease, opacity 0.3s ease;
     }
 
@@ -117,7 +129,7 @@
     .signup-link {
         text-align: center;
         font-size: 14px;
-        margin-top: 15px;
+        margin-top: 12px;
         color: #ccc;
     }
 
@@ -131,7 +143,8 @@
     .signup-link a:hover {
         text-decoration: underline;
     }
-    
+
+    /* Error message styling - consistent with signup page */
     .login-error {
         background: rgba(255, 0, 0, 0.1);
         border: 1px solid #ff4d4d;
@@ -142,22 +155,24 @@
         text-align: center;
         margin-bottom: 15px;
     }
-    
 </style>
 </head>
 <body>
     <div class="login-box">
         <h1>Sign In</h1>
         <form th:action="@{/login}" method="post">
-        
+
+            <!-- Display login error -->
+            
+
             <div class="form-group">
                 <label for="email">Your email</label>
-                <input type="email" id="email" name="email"  required/>
+                <input type="email" id="email" name="email" required/>
             </div>
 
             <div class="form-group">
                 <label for="password">Your password</label>
-                <input type="password" id="password" name="password" srequired/>
+                <input type="password" id="password" name="password" required/>
             </div>
 
             <div class="options">
@@ -168,15 +183,13 @@
             </div>
             
             <div th:if="${param.error}" class="login-error">
-            	Email and Password do not match
-        	</div>
+                Email and Password do not match
+            </div>
 
             <button type="submit" class="btn btn-primary">SIGN IN</button>
             <div class="divider">or</div>
             <button type="button" class="btn btn-google">SIGN IN WITH GOOGLE</button>
         </form>
-        
-        
 
         <div class="signup-link">
             Don't have an account?

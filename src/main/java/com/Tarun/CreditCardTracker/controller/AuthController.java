@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import com.Tarun.CreditCardTracker.service.*;
 
+import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletResponse;
+
 @Controller
 public class AuthController {
 	
@@ -21,9 +24,10 @@ public class AuthController {
 		return "auth/login";
 	}
 	
+	
 	@PostMapping("/login")
-	public String postLogin(@RequestParam String email,@RequestParam String password,@RequestParam(required=false,name="rememberMe",defaultValue="false") boolean rememberMe,ModelMap map) {
-		return authService.postLogin(email, password, rememberMe,map);
+	public String postLogin(@RequestParam String email,@RequestParam String password,@RequestParam(required=false,name="rememberMe",defaultValue="false") boolean rememberMe,ModelMap map,HttpServletResponse response) {
+		return authService.postLogin(email, password, rememberMe,map,response);
 	}
 	
 	@GetMapping("/home")
@@ -41,6 +45,29 @@ public class AuthController {
 		return authService.postSignup(firstName,lastName,email,phone,password,confPassword,map);
 	}
 	
+	@GetMapping("/forgotPassword")
+	public String getForgotPassword() {
+		return "auth/forgotPassword";
+	}
 	
+	@PostMapping("/generateOTP")
+	public String postGenerateOTP(@RequestParam String email,ModelMap map) throws Exception {
+		return authService.postGenerateOTP(email,map);
+	}
+	
+	@PostMapping("/validateOTP")
+	public String postValidateOTP(@RequestParam String otp1,@RequestParam String otp2,@RequestParam String otp3,@RequestParam String otp4,@RequestParam String otp5,@RequestParam String otp6,ModelMap map,@RequestParam String email) throws MessagingException {
+		return authService.postValidateOTP(email,otp1,otp2,otp3,otp4,otp5,otp6,map);
+	}
+	
+	@GetMapping("/resetPassword")
+	public  String getResetPassword() {
+		return "auth/resetPassword";
+	}
+	
+	@PostMapping("/resetPassword")
+	public String getResetPassword(@RequestParam String email,@RequestParam String password,@RequestParam String confirmPassword,ModelMap map) {
+		return  authService.postResetPassword(email,password,confirmPassword,map);
+	} 
 
 }

@@ -1,143 +1,252 @@
 package com.Tarun.CreditCardTracker.service;
 
+import org.springframework.mail.MailException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.ModelMap;
 
 import com.Tarun.CreditCardTracker.model.Users;
 import com.Tarun.CreditCardTracker.repository.UserRepository;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 @Service
 public class AuthService {
-	
-	private UserRepository userRepo;
-	private AuthenticationManager authManager;
-	
-	public AuthService(AuthenticationManager authManager,UserRepository userRepo) {
-		this.authManager=authManager;
-		this.userRepo=userRepo;
-	}
 
-	public String postLogin( String email, String password,boolean rememberMe,ModelMap map) {
+    private final UserRepository userRepo;
+    private final AuthenticationManager authManager;
+    private final JavaMailSender mailSender;
+    private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
-	    try {
-	        Authentication authentication = authManager.authenticate(
-	            new UsernamePasswordAuthenticationToken(email, password)
-	        );
+    // OTP store keyed by email
+    private final ConcurrentMap<String, String> otpStore = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Long> otpExpiry = new ConcurrentHashMap<>();
+    private static final long OTP_TTL_MS = 5 * 60 * 1000L; // 5 minutes
 
-	        if(authentication.isAuthenticated()) {
-	            return "pages/home";
-	        }
-	    } catch (AuthenticationException ex) {
-	        // authentication failed
-	        map.addAttribute("loginError", "Email and Password do not match");
-	        return "auth/login";
-	    }
+    public AuthService(AuthenticationManager authManager,
+                       UserRepository userRepo,
+                       JavaMailSender mailSender,
+                       JwtService jwtService,
+                       PasswordEncoder passwordEncoder) {
+        this.authManager = authManager;
+        this.userRepo = userRepo;
+        this.mailSender = mailSender;
+        this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
-	    // fallback (just in case)
-	    map.addAttribute("loginError", "Login failed");
-	    return "auth/login";
-	}
+    /** Clear stored OTPs older than TTL (optional housekeeping) */
+    private void cleanExpiredOtps() {
+        long now = System.currentTimeMillis();
+        otpExpiry.forEach((email, expiry) -> {
+            if (expiry < now) {
+                otpExpiry.remove(email);
+                otpStore.remove(email);
+            }
+        });
+    }
 
-	public String postSignup(String firstName, String lastName, String email, String phone, String password,
-			String confPassword, ModelMap map) {
-		// TODO Auto-generated method stub
-		map.addAttribute("firstName",firstName);
-		map.addAttribute("lastName",lastName);
-		
-		Users user = userRepo.findByEmail(email);
-		
-		
-		if(user!=null) {
-			map.addAttribute("validEmailError","Email already present!");
-		}else {
-			map.addAttribute("validEmail",email);
-		}
-		
-		boolean validPhone = true;
-		
-		for(int i=0;i<phone.length();i++) {
-			if(phone.charAt(i)<48 && phone.charAt(i)>58) {
-				validPhone=false;
-			}
-		}
-		
-		if(phone.length()!=10 || !validPhone) {
-			map.addAttribute("validPhoneError","Enter a valid phone number");
-		}else {
-			map.addAttribute("validPhone",phone);
-		}
-		
-		boolean validPassword = password.equals(confPassword)?true:false;
-		
-		String validPasswordCriteria = passwordCriteria(password,confPassword);
-		
-		if(validPassword) {
-			
-			if(validPasswordCriteria.length()!=0) {
-				map.addAttribute("validPasswordCriteriaError","Password does not met the criteria");
-			}
-		}else {
-			map.addAttribute("validPasswordError","Passwords does not match");
-		}
-		
-		if(user==null && validPhone && phone.length()==10 && validPassword && validPasswordCriteria.length()==0) {
-			
-			Users currUser = new Users();
-			currUser.setFirstName(firstName);
-			currUser.setLastName(lastName);
-			currUser.setEmail(email);
-			currUser.setPhn(phone);
-			currUser.setPassword(password);
-			
-			userRepo.save(currUser);
-			
-			return "auth/login";
-		}else {
-			return "auth/signup";
-		}
-		
-	}
-	
-	
-	public String passwordCriteria(String password,String confPassword) {
-		
-		if(password.length()<8) {
-			return "Password should contain at lease 8 characters";
-		}
-		
-		int cap = 0;
-		int normal = 0;
-		int symbol = 0;
-		int number =0;
-		
-		for(int i=0;i<password.length();i++) {
-			int ascii = password.charAt(i);
-			
-			if(ascii>=33 && ascii<=47 || ascii>=58 && ascii<=64 || ascii>=91 && ascii<=96) {
-				symbol++;
-			}else if(ascii>=48 && ascii<=57) {
-				number++;
-			}else if(ascii>=65 && ascii<=90) {
-				cap++;
-			}else {
-				normal++;
-			}
-		}
-		
-		if(cap ==0) {
-			return "Password should contain a capital letter";
-		}else if(symbol==0) {
-			return "Password should contain a special character";
-		}else if(number==0) {
-			return "Password should contain a number";
-		}else {
-			return "";
-		}
-	}
+    // --- Login ---
+    public String postLogin(String email, String password, boolean rememberMe,
+                            ModelMap map, HttpServletResponse response) {
+        try {
+            Authentication authentication = authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password)
+            );
+            if (authentication.isAuthenticated()) {
+                SecurityContextHolder.getContext().setAuthentication(authentication);
 
+                if (rememberMe) {
+                    String token = jwtService.generateToken(email);
+                    Cookie jwtCookie = new Cookie("jwt", token);
+                    jwtCookie.setHttpOnly(true);
+                    jwtCookie.setPath("/");
+                    jwtCookie.setMaxAge(24 * 60 * 60);
+                    jwtCookie.setSecure(true); // only over HTTPS
+                    // for SameSite, use response header or newer Servlet API if needed
+                    response.addCookie(jwtCookie);
+                }
+                return "pages/home";
+            }
+        } catch (AuthenticationException ex) {
+            map.addAttribute("loginError", "Email and Password do not match");
+            return "auth/login";
+        }
 
+        map.addAttribute("loginError", "Login failed");
+        return "auth/login";
+    }
+
+    // --- Signup ---
+    public String postSignup(String firstName, String lastName, String email, String phone,
+                             String password, String confPassword, ModelMap map) {
+
+        map.addAttribute("firstName", firstName);
+        map.addAttribute("lastName", lastName);
+
+        Users existingUser = userRepo.findByEmail(email);
+        if (existingUser != null) map.addAttribute("validEmailError", "Email already present!");
+        map.addAttribute("validEmail", email);
+
+        Users existingPhone = userRepo.findByPhn(phone);
+        boolean phonePresent = existingPhone != null;
+        if (phonePresent) map.addAttribute("phnPresentError", "Mobile number already registered!");
+
+        boolean validPhone = phone.matches("\\d{10}");
+        if (!validPhone) map.addAttribute("validPhoneError", "Enter a valid phone number");
+        else map.addAttribute("validPhone", phone);
+
+        boolean validPassword = password.equals(confPassword);
+        String validPasswordCriteria = passwordCriteria(password);
+
+        if (!validPassword) map.addAttribute("validPasswordError", "Passwords do not match");
+        else if (!validPasswordCriteria.isEmpty())
+            map.addAttribute("validPasswordCriteriaError", validPasswordCriteria);
+
+        if (existingUser == null && validPhone && !phonePresent && validPassword && validPasswordCriteria.isEmpty()) {
+            Users currUser = new Users();
+            currUser.setFirstName(firstName);
+            currUser.setLastName(lastName);
+            currUser.setEmail(email);
+            currUser.setPhn(phone);
+            currUser.setPassword(passwordEncoder.encode(password)); // encode password
+
+            userRepo.save(currUser);
+            
+            Authentication authentication = authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            
+            return "pages/home";
+        } else {
+            return "auth/signup";
+        }
+    }
+
+    // --- Password criteria check ---
+    public String passwordCriteria(String password) {
+        if (password.length() < 8) return "Password should contain at least 8 characters";
+        int cap = 0, number = 0, symbol = 0;
+        for (char c : password.toCharArray()) {
+            if (Character.isUpperCase(c)) cap++;
+            else if (Character.isDigit(c)) number++;
+            else if (!Character.isLetterOrDigit(c)) symbol++;
+        }
+        if (cap == 0) return "Password should contain a capital letter";
+        if (number == 0) return "Password should contain a number";
+        if (symbol == 0) return "Password should contain a special character";
+        return "";
+    }
+
+    // --- Generate OTP ---
+    public String postGenerateOTP(String email, ModelMap map) throws MessagingException {
+        cleanExpiredOtps();
+        Users user = userRepo.findByEmail(email);
+        map.addAttribute("email", email);
+
+        if (user == null) {
+            map.addAttribute("emailNotPresentError", "Email is not registered!");
+            map.addAttribute("otpSent", false);
+            return "auth/forgotPassword";
+        } else {
+            String otp = String.valueOf(100000 + new Random().nextInt(900000));
+            otpStore.put(email, otp);
+            otpExpiry.put(email, System.currentTimeMillis() + OTP_TTL_MS);
+
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, false, "UTF-8");
+
+            String content =
+                    "<p>Dear " + user.getFirstName() + " " + user.getLastName() + ",</p>" +
+                            "<p><strong>This email was sent in response to your \"Forgot Password\" request.</strong></p>" +
+                            "If you DID NOT make the request, you may disregard this email." +
+                            "<p><strong>OTP:</strong> " + otp + "</p>" +
+                            "<p>Thank You<br/>Credit Tracker</p>";
+
+            helper.setTo(email);
+            helper.setSubject("Requested OTP From Credit Tracker");
+            helper.setText(content, true);
+
+            try {
+                mailSender.send(msg);
+            } catch (MailException ex) {
+                map.addAttribute("otpSent", false);
+                map.addAttribute("emailError", "Failed to send OTP. Try again later.");
+                return "auth/forgotPassword";
+            }
+
+            map.addAttribute("otpMessage", "Enter the OTP sent to your registered email.");
+            return "auth/forgotPassword";
+        }
+    }
+
+    // --- Validate OTP ---
+    public String postValidateOTP(String email, String otp1, String otp2, String otp3,
+                                  String otp4, String otp5, String otp6, ModelMap map) {
+        cleanExpiredOtps();
+        String inputOtp = String.join("",
+                otp1 == null ? "" : otp1.trim(),
+                otp2 == null ? "" : otp2.trim(),
+                otp3 == null ? "" : otp3.trim(),
+                otp4 == null ? "" : otp4.trim(),
+                otp5 == null ? "" : otp5.trim(),
+                otp6 == null ? "" : otp6.trim());
+
+        if (!inputOtp.matches("\\d{6}")) {
+            map.addAttribute("otpMessageError", "Enter a 6-digit OTP");
+            return "auth/forgotPassword";
+        }
+
+        String storedOtp = otpStore.get(email);
+        Long expiry = otpExpiry.get(email);
+
+        if (storedOtp != null && expiry != null && expiry >= System.currentTimeMillis() && storedOtp.equals(inputOtp)) {
+            // valid -> remove from store
+            otpStore.remove(email);
+            otpExpiry.remove(email);
+            // pass email to reset page as hidden field or session
+            map.addAttribute("email", email);
+            return "auth/resetPassword";
+        } else {
+            map.addAttribute("otpMessageError", "Invalid or expired OTP");
+            return "auth/forgotPassword";
+        }
+    }
+
+    // --- Reset password ---
+    public String postResetPassword(String email, String password, String confirmPassword, ModelMap map) {
+        boolean validPassword = password.equals(confirmPassword);
+        String validPasswordCriteria = passwordCriteria(password);
+
+        if (!validPassword) map.addAttribute("validPasswordError", "Passwords do not match");
+        else if (!validPasswordCriteria.isEmpty())
+            map.addAttribute("validPasswordCriteriaError", validPasswordCriteria);
+
+        if (validPassword && validPasswordCriteria.isEmpty()) {
+            Users user = userRepo.findByEmail(email);
+            if (user != null) {
+                user.setPassword(passwordEncoder.encode(password));
+                userRepo.save(user);
+            }
+            return "auth/login";
+        } else {
+            map.addAttribute("email", email);
+            return "auth/resetPassword";
+        }
+    }
 }
