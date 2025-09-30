@@ -147,7 +147,7 @@ public class AuthService {
 
             String content =
                     "<p>Dear " + user.getFirstName() + " " + user.getLastName() + ",</p>" +
-                            "<p><strong>This email was sent in response to your \"Forgot Password\" request.</strong></p>" +
+                            "<p><strong>This email was sent in response to your \"Forgot Password\" request.</strong> Generated OTP is valid for 2 minutes.</p>" +
                             "If you DID NOT make the request, you may disregard this email." +
                             "<p><strong>OTP:</strong> " + otp + "</p>" +
                             "<p>Thank You<br/>Credit Tracker</p>";
@@ -189,6 +189,11 @@ public class AuthService {
 
         String storedOtp = otpStore.get(email);
         Long expiry = otpExpiry.get(email);
+        
+        if(expiry>=System.currentTimeMillis()) {
+        	map.addAttribute("otpTimeout","OTP expired. Please request a new OTP.");
+        	return "auth/forgotPassword";
+        }
 
         if (storedOtp != null && expiry != null && expiry >= System.currentTimeMillis() && storedOtp.equals(inputOtp)) {
             // valid -> remove from store
