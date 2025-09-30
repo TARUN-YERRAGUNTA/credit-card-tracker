@@ -6,7 +6,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,9 +17,6 @@ import com.Tarun.CreditCardTracker.repository.UserRepository;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
-
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
