@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Sign Up</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #1a1a1a, #2b2b2b);
+        font-family: 'Poppins', sans-serif;
+        color: #fff;
+        min-height: 100%;
+    }
+
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 0;
+    }
+
+    .signup-box {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 30px 40px;
+        border-radius: 12px;
+        width: 400px;
+        max-width: 90%;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        margin-top:-25px;
+        margin-bottom:-25px;
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 25px;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        font-size: 12px;
+        color: #aaa;
+    }
+
+    .form-group input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid #555;
+        padding: 6px 0;
+        color: #fff;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s ease;
+    }
+
+    .form-group input:focus {
+        border-color: #00cfff;
+    }
+
+    .btn {
+        width: 100%;
+        border: none;
+        padding: 12px;
+        border-radius: 30px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        margin-bottom: 10px;
+        transition: background 0.3s ease, opacity 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #00c6ff, #0072ff);
+        color: #fff;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.9;
+    }
+
+    .btn-google {
+        background: linear-gradient(90deg, #4285F4, #34A853);
+        color: #fff;
+    }
+
+    .btn-google:hover {
+        opacity: 0.9;
+    }
+
+    .divider {
+        text-align: center;
+        margin: 10px 0;
+        font-size: 12px;
+        color: #aaa;
+    }
+
+    .signin-link {
+        text-align: center;
+        font-size: 14px;
+        margin-top: 12px;
+        color: #ccc;
+    }
+
+    .signin-link a {
+        color: #00cfff;
+        text-decoration: none;
+        font-weight: 600;
+        margin-left: 4px;
+    }
+
+    .signin-link a:hover {
+        text-decoration: underline;
+    }
+
+    /* Error message styling same as login-error */
+    .signup-error {
+        background: rgba(255, 0, 0, 0.1);
+        border: 1px solid #ff4d4d;
+        color: #ff6b6b;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        text-align: center;
+        margin-top:10px;
+        margin-bottom: 15px;
+    }
+
+</style>
+</head>
+<body>
+    <div class="signup-box">
+        <h1>Sign Up</h1>
+
+        <form th:action="@{/signup}" method="post">
+
+            <!-- Display general signup error -->
+            <div th:if="${signupError}" class="signup-error" th:text="${signupError}"></div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" name="firstName" th:value="${firstName}" required/>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" th:value="${lastName}"/>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" th:value="${validEmail}" required/>
+                <div th:if="${validEmailError}" class="signup-error" th:text="${validEmailError}"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="text" id="phone" name="phone" th:value="${validPhone}" required/>
+                <div th:if="${validPhoneError}" class="signup-error" th:text="${validPhoneError}"></div>
+                <div th:if="${phnPresentError}" class="signup-error" th:text="${phnPresentError}"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required/>
+            </div>
+
+            <div class="form-group">
+                <label for="confPassword">Confirm Password</label>
+                <input type="password" id="confPassword" name="confPassword" required/>
+                <div th:if="${validPasswordError}" class="signup-error" th:text="${validPasswordError}"></div>
+                <div th:if="${validPasswordCriteriaError}" class="signup-error">
+                	Password should contain at lease 8 characters<br>
+                	Password should contain a capital letter<br>
+                	Password should contain a special character<br>
+                	Password should contain a number
+                </div>
+            </div>
+            
+
+            <button type="submit" class="btn btn-primary">SIGN UP</button>
+            <div class="divider">or</div>
+        </form>
+
+        <div class="signin-link">
+            Already have an account?
+            <a th:href="@{/login}">Sign In</a>
+        </div>
+    </div>
+</body>
+</html>

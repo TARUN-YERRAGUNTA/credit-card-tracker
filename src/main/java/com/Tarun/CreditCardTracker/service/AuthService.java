@@ -30,13 +30,12 @@ public class AuthService {
     private final UserRepository userRepo;
     private final AuthenticationManager authManager;
     private final JavaMailSender mailSender;
-    private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
 
     // OTP store keyed by email
     private final ConcurrentMap<String, String> otpStore = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Long> otpExpiry = new ConcurrentHashMap<>();
-    private static final long OTP_TTL_MS = 5 * 60 * 1000L; // 5 minutes
+    private static final long OTP_TTL_MS = 2 * 60 * 1000L; // 2 minutes
 
     public AuthService(AuthenticationManager authManager,
                        UserRepository userRepo,
@@ -46,7 +45,6 @@ public class AuthService {
         this.authManager = authManager;
         this.userRepo = userRepo;
         this.mailSender = mailSender;
-        this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
     }
 

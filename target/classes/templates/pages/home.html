@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>home</title>
+</head>
+
+<body>
+Inside the Home page
+
+<div class="logout">
+
+	<form  th:action="@{/logout}" method="post">
+		<input type="submit" value="Sign out">
+	</form>
+</div>
+</body>
+</html>
