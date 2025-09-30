@@ -16,7 +16,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.Tarun.CreditCardTracker.filter.JwtFilter;
+import com.Tarun.CreditCardTracker.service.CustomOAuth2UserService;
 import com.Tarun.CreditCardTracker.service.MyUserDetailsService;
+import com.Tarun.CreditCardTracker.service.OAuth2LoginSuccessHandler;
 
 @Configuration
 public class SecurityConfig {
@@ -24,11 +26,20 @@ public class SecurityConfig {
 	private final MyUserDetailsService myUserDetailsService;
 	private final JwtFilter jwtFilter;
 	private final CustomLogoutSuccessHandler customLogoutSuccessHandler;
+	private final CustomOAuth2UserService customOAuth2UserService;
+	private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+	private final CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
+	private final CustomAuthenticationFailureHandler customAuthenticationFailureHandler;
+
 	
-	public SecurityConfig(MyUserDetailsService myUserDetailsService,JwtFilter jwtFilter,CustomLogoutSuccessHandler customLogoutSuccessHandler) {
+	public SecurityConfig(MyUserDetailsService myUserDetailsService,JwtFilter jwtFilter,CustomLogoutSuccessHandler customLogoutSuccessHandler,CustomOAuth2UserService customOAuth2UserService,OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler,CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler,CustomAuthenticationFailureHandler customAuthenticationFailureHandler) {
 		this.myUserDetailsService=myUserDetailsService;
 		this.jwtFilter=jwtFilter;
 		this.customLogoutSuccessHandler=customLogoutSuccessHandler;
+		this.customOAuth2UserService  = customOAuth2UserService;
+		this.oAuth2LoginSuccessHandler=oAuth2LoginSuccessHandler;
+		this.customAuthenticationSuccessHandler=customAuthenticationSuccessHandler;
+		this.customAuthenticationFailureHandler=customAuthenticationFailureHandler;
 	}
 	
 	@Bean
@@ -37,6 +48,7 @@ public class SecurityConfig {
 		http
 			.csrf(customizer->customizer.disable())
 			.authorizeHttpRequests(auth -> auth.requestMatchers("/login","/signup","/forgotPassword","/generateOTP","/validateOTP","/resetPassword").permitAll().anyRequest().authenticated())
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 			.authenticationProvider(authenticationProvider())
 			.logout(logout -> logout
 				    .logoutUrl("/logout") // allow POST (default) and GET if you want
@@ -46,7 +58,13 @@ public class SecurityConfig {
 				    .logoutSuccessHandler(customLogoutSuccessHandler)
 				    .permitAll()
 				)
-			.formLogin(form -> form.loginPage("/login").usernameParameter("email").defaultSuccessUrl("/home"))
+			.formLogin(form -> form
+					.loginPage("/login")
+					.usernameParameter("email")
+					.successHandler(customAuthenticationSuccessHandler)
+					.failureHandler(customAuthenticationFailureHandler)
+					.permitAll())
+			.oauth2Login(oauth2 -> oauth2.loginPage("/login").userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService)).successHandler(oAuth2LoginSuccessHandler).failureHandler((request,response,exception)->{response.sendRedirect("/login?oAuthError=true");}))
 			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);		
 
 		return http.build();	

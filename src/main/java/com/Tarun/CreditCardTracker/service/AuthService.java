@@ -61,36 +61,8 @@ public class AuthService {
         });
     }
 
-    // --- Login ---
-    public String postLogin(String email, String password, boolean rememberMe,
-                            ModelMap map, HttpServletResponse response) {
-        try {
-            Authentication authentication = authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, password)
-            );
-            if (authentication.isAuthenticated()) {
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                if (rememberMe) {
-                    String token = jwtService.generateToken(email);
-                    Cookie jwtCookie = new Cookie("jwt", token);
-                    jwtCookie.setHttpOnly(true);
-                    jwtCookie.setPath("/");
-                    jwtCookie.setMaxAge(24 * 60 * 60);
-                    jwtCookie.setSecure(true); // only over HTTPS
-                    // for SameSite, use response header or newer Servlet API if needed
-                    response.addCookie(jwtCookie);
-                }
-                return "pages/home";
-            }
-        } catch (AuthenticationException ex) {
-            map.addAttribute("loginError", "Email and Password do not match");
-            return "auth/login";
-        }
-
-        map.addAttribute("loginError", "Login failed");
-        return "auth/login";
-    }
+   
+    
 
     // --- Signup ---
     public String postSignup(String firstName, String lastName, String email, String phone,
@@ -113,6 +85,10 @@ public class AuthService {
 
         boolean validPassword = password.equals(confPassword);
         String validPasswordCriteria = passwordCriteria(password);
+        
+        if(phonePresent || existingUser!=null || !validPhone) {
+        	return "auth/signup";
+        }
 
         if (!validPassword) map.addAttribute("validPasswordError", "Passwords do not match");
         else if (!validPasswordCriteria.isEmpty())
@@ -199,6 +175,7 @@ public class AuthService {
     public String postValidateOTP(String email, String otp1, String otp2, String otp3,
                                   String otp4, String otp5, String otp6, ModelMap map) {
         cleanExpiredOtps();
+        map.addAttribute("email",email);
         String inputOtp = String.join("",
                 otp1 == null ? "" : otp1.trim(),
                 otp2 == null ? "" : otp2.trim(),
@@ -223,7 +200,7 @@ public class AuthService {
             map.addAttribute("email", email);
             return "auth/resetPassword";
         } else {
-            map.addAttribute("otpMessageError", "Invalid or expired OTP");
+            map.addAttribute("otpMessageError", "Invalid OTP");
             return "auth/forgotPassword";
         }
     }

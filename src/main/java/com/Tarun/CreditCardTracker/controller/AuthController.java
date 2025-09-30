@@ -25,10 +25,7 @@ public class AuthController {
 	}
 	
 	
-	@PostMapping("/login")
-	public String postLogin(@RequestParam String email,@RequestParam String password,@RequestParam(required=false,name="rememberMe",defaultValue="false") boolean rememberMe,ModelMap map,HttpServletResponse response) {
-		return authService.postLogin(email, password, rememberMe,map,response);
-	}
+
 	
 	@GetMapping("/home")
 	public String getHome() {
